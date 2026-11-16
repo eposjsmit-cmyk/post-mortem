@@ -1,0 +1,19 @@
+﻿{
+  "name": "post-mortem",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "serve": "python -m http.server 8077"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "chess.js": "1.4.0",
+    "chessground": "9.2.1",
+    "stockfish": "19.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1f3b63"/>
+  <g fill="#ffffff">
+    <!-- Pawn -->
+    <circle cx="200" cy="168" r="52"/>
+    <path d="M160 232h80l18 108h-116z"/>
+    <rect x="118" y="340" width="164" height="42" rx="14"/>
+  </g>
+  <!-- Magnifying glass over the pawn: looking back at the game -->
+  <circle cx="320" cy="256" r="88" fill="none" stroke="#7fb3ff" stroke-width="30"/>
+  <path d="M384 322l66 66" stroke="#7fb3ff" stroke-width="40" stroke-linecap="round"/>
+</svg>

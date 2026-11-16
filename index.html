@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en-ZA">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Post-Mortem</title>
+    <meta name="description" content="Chess training from your own games: reviews, puzzles from your mistakes, openings and opponent prep." />
+    <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Post-Mortem" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png" />
+    <link rel="stylesheet" href="vendor/chessground/chessground.base.css" />
+    <link rel="stylesheet" href="vendor/chessground/chessground.brown.css" />
+    <link rel="stylesheet" href="vendor/chessground/chessground.cburnett.css" />
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#/home" aria-label="Post-Mortem home">
+        <img src="icons/icon.svg" alt="" width="28" height="28" />
+        <span>Post-Mortem</span>
+      </a>
+      <nav class="tabs" aria-label="Main"></nav>
+      <div class="top-actions">
+        <span class="sync-status muted" aria-live="polite"></span>
+        <a class="icon-btn" href="#/settings" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </a>
+      </div>
+    </header>
+    <main id="view" tabindex="-1"></main>
+    <noscript><p class="empty">Post-Mortem needs JavaScript switched on.</p></noscript>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

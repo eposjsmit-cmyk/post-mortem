@@ -159,9 +159,34 @@ async function start() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') autoSync();
   });
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
+  registerUpdates();
+}
+
+/** Offline support, plus a "new version" notice when an update has been published. */
+function registerUpdates() {
+  if (!('serviceWorker' in navigator) || location.protocol !== 'https:') return;
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker
+    .register('sw.js', { updateViaCache: 'none' })
+    .then((reg) => {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+      });
+    })
+    .catch(() => {});
+  let shown = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || shown) return;
+    shown = true;
+    document.body.append(
+      h(
+        'div.update-bar',
+        { role: 'status' },
+        h('span', 'A new version of Post-Mortem is ready.'),
+        h('button.btn.primary.small', { type: 'button', onclick: () => location.reload() }, 'Reload'),
+      ),
+    );
+  });
 }
 
 start();

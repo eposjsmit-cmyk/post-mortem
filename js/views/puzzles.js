@@ -16,8 +16,8 @@ export async function render(view, { params }) {
   let attempt = null; // { hint, wrong, revealed, solved, recorded }
   let board = null;
 
-  const countsHost = h('div.tiles');
-  const chipsHost = h('div.chips');
+  const countsHost = h('div.tiles.compact');
+  const chipsHost = h('div.chips.scroll');
   const mainHost = h('div');
   view.append(h('div.page-head', h('h1', 'Puzzles'), h('p.muted', 'Every puzzle is a moment from your own games where you went wrong.')), countsHost, chipsHost, mainHost);
 
@@ -40,7 +40,7 @@ export async function render(view, { params }) {
       tile('Due now', c.due),
       tile('Done today', c.doneToday),
       tile('Learned', c.learned, 'right 4 times in a row'),
-      tile('All puzzles', c.total),
+      tile('All', c.total),
     );
   }
 
@@ -79,6 +79,9 @@ export async function render(view, { params }) {
     current = queue.shift() ?? null;
     attempt = { hint: false, wrong: false, revealed: false, solved: false, recorded: false };
     renderPuzzle();
+    // If the new board starts above the screen, bring it back into view.
+    const b = mainHost.querySelector('.board-area');
+    if (b && b.getBoundingClientRect().top < 0) window.scrollTo({ top: Math.max(0, window.scrollY + b.getBoundingClientRect().top - 12), behavior: 'smooth' });
   }
 
   function renderPuzzle() {
@@ -115,15 +118,14 @@ export async function render(view, { params }) {
     mainHost.append(
       h(
         'div.split',
-        h('div.stack', h('div.board-area', boardHost)),
+        h('div.stack', status, h('div.board-area', boardHost)),
         h(
           'div.side',
           h(
             'section.card',
             h('div.row.between', h('strong', MISTAKE_TYPES[p.type] ?? 'Puzzle'), h('span.muted.small', p.lastSeen ? `Last tried ${timeAgo(p.lastSeen)}` : 'New')),
-            status,
             h('p.muted.small', `In the game you played ${lineText(p.fen, [p.played])} and your winning chances dropped ${Math.round(p.drop)}%.`),
-            h('div.row.wrap', hintBtn, showBtn, skipBtn, nextBtn),
+            h('div.row.wrap.dock', hintBtn, showBtn, skipBtn, nextBtn),
             h('a.small', { href: `#/review/${encodeURIComponent(p.gameId)}?ply=${p.ply}&autoreview=0` }, 'See it in the game →'),
           ),
           after,

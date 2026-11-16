@@ -1,6 +1,7 @@
 // Offline support: try the network first and fall back to the cached copy.
 // The chess engine, board and app files are cached as they are used.
-const CACHE = 'post-mortem-v1';
+// Keep in step with js/version.js.
+const CACHE = 'post-mortem-1.2.0';
 const SHELL = [
   './',
   './index.html',
@@ -31,7 +32,8 @@ self.addEventListener('fetch', (e) => {
   // Only this site's own files; chess.com and Anthropic requests always go to the network.
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
   e.respondWith(
-    fetch(req)
+    // "no-cache" asks the server whether the file changed every time, so updates arrive straight away.
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();

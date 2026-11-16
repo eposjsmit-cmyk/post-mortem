@@ -5,9 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Post-Mortem</title>
     <meta name="description" content="Chess training from your own games: reviews, puzzles from your mistakes, openings and opponent prep." />
-    <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0b0d12" />
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      // Apply the chosen theme before the page draws (dark unless changed in Settings).
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('pm-theme') || 'dark';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Post-Mortem" />

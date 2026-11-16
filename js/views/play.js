@@ -104,7 +104,7 @@ export async function render(view, { params }) {
       h(
         'div.split',
         h('div.stack', h('div.player', h(`span.dot-colour.${me === 'w' ? 'b' : 'w'}`), h('span.name', `Stockfish level ${lvl.n} (${lvl.elo})`)), h('div.board-area', bar.el, boardCol), h('div.player', h(`span.dot-colour.${me}`), h('span.name', 'You'))),
-        h('div.side', h('section.card', status, h('div.row.wrap', hintBtn, takeBtn, resignBtn, reviewBtn, newBtn)), feedback, h('section.card', h('h3', 'Moves'), movesEl)),
+        h('div.side', h('section.card', status, h('div.row.wrap.dock', hintBtn, takeBtn, resignBtn, reviewBtn, newBtn)), feedback, h('section.card', h('h3', 'Moves'), movesEl)),
       ),
     );
 

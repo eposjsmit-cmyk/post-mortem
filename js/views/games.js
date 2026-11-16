@@ -12,7 +12,7 @@ export async function render(view) {
   let shown = 40;
   const listHost = h('div');
   const queueHost = h('div');
-  const filterHost = h('div.chips');
+  const filterHost = h('div.chips.scroll');
 
   const settings = await getSettings();
   const syncBtn = h('button.btn', { type: 'button', onclick: async () => {

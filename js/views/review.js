@@ -41,17 +41,18 @@ export async function render(view, { arg, params }) {
   const banner = h('div');
   const liveHost = h('section.card');
   const graphHost = h('div');
-  const movesHost = h('div.moves', { role: 'list' });
+  const movesHost = h('div.moves.desktop-only', { role: 'list' });
+  const stripHost = h('div.move-strip.phone-only', { role: 'list', 'aria-label': 'Moves' });
   const reportHost = h('section.card');
   const varHost = h('div');
   const whyHost = h('div');
 
-  const btn = (label, title, fn) => h('button.btn', { type: 'button', title, 'aria-label': title, onclick: fn }, label);
+  const btn = (label, title, fn, cls = '') => h(`button.btn${cls}`, { type: 'button', title, 'aria-label': title, onclick: fn }, label);
   const nav = h(
-    'div.nav-buttons',
+    'div.nav-buttons.dock',
     btn('⏮', 'Start', () => goTo(0)),
     btn('◀', 'Previous move', () => step(-1)),
-    btn('▶', 'Next move', () => step(1)),
+    btn('▶', 'Next move', () => step(1), '.next'),
     btn('⏭', 'End', () => goTo(n)),
     btn('⇅', 'Flip board', () => {
       board.flip();
@@ -76,8 +77,8 @@ export async function render(view, { arg, params }) {
     ),
     h(
       'div.split',
-      h('div.stack', topPlayer, area, bottomPlayer, nav, arrowToggle),
-      h('div.side', varHost, banner, whyHost, liveHost, h('section.card', h('h2', 'Advantage'), graphHost, movesHost), reportHost),
+      h('div.stack', topPlayer, area, bottomPlayer, nav, varHost, banner, stripHost, whyHost, arrowToggle),
+      h('div.side', liveHost, h('section.card', h('h2', 'Advantage'), graphHost, movesHost), reportHost),
     ),
   );
 
@@ -214,6 +215,25 @@ export async function render(view, { arg, params }) {
         movesHost.scrollTop = Math.max(0, top - movesHost.clientHeight / 2);
       }
     }
+
+    // Phone strip: one row of moves that scrolls sideways.
+    clear(stripHost);
+    for (let k = 0; k < n; k++) {
+      if (k % 2 === 0) stripHost.append(h('span.num', `${k / 2 + 1}.`));
+      const p = plyAt(k);
+      const sym = p && !['best', 'excellent', 'good', 'forced'].includes(p.verdict) ? VERDICT_INFO[p.verdict].symbol : '';
+      stripHost.append(
+        h(
+          `button${!variation && idx === k + 1 ? '.current' : ''}${p ? `.v-${p.verdict}` : ''}`,
+          { type: 'button', role: 'listitem', onclick: () => goTo(k + 1), 'aria-label': `${game.moves[k]}${p ? `, ${VERDICT_INFO[p.verdict].label}` : ''}` },
+          game.moves[k],
+          sym ? h('span.msym', sym) : null,
+        ),
+      );
+    }
+    const sc = stripHost.querySelector('.current');
+    if (sc) stripHost.scrollLeft = Math.max(0, sc.offsetLeft - stripHost.clientWidth / 2 + sc.offsetWidth / 2);
+    else if (idx === 0) stripHost.scrollLeft = 0;
   }
 
   let graph = null;

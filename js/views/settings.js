@@ -3,6 +3,7 @@ import { MODEL } from '../claude.js';
 import { db, getKv, getSettings, resetSettingsCache, saveSettings, setKv } from '../db.js';
 import { autoSync } from '../main.js';
 import { confirmDialog, h, timeAgo, toast } from '../ui.js';
+import { VERSION } from '../version.js';
 
 export async function render(view) {
   const s = await getSettings();
@@ -82,6 +83,11 @@ export async function render(view) {
     ),
     h(
       'section.card',
+      h('h2', 'Appearance'),
+      themeChips(),
+    ),
+    h(
+      'section.card',
       h('h2', 'Reviews'),
       h('label.check', h('input', { type: 'checkbox', checked: s.autoReview, onchange: (e) => saveSettings({ autoReview: e.target.checked }) }), 'Review new games automatically (a few at a time)'),
     ),
@@ -91,8 +97,34 @@ export async function render(view) {
       h('p.muted', `Stored in this browser: ${counts.games} games, ${counts.reviews} reviews, ${counts.puzzles} puzzles.`),
       h('div.row.wrap', h('button.btn.danger', { type: 'button', onclick: clearAll }, 'Clear all data')),
     ),
-    h('p.muted.small', 'Engine: Stockfish 19 (lite). Board: chessground. Rules: chess.js. All analysis runs on your device.'),
+    h('p.muted.small', `Post-Mortem version ${VERSION}. Engine: Stockfish 19 (lite). Board: chessground. Rules: chess.js. All analysis runs on your device.`),
   );
+
+  function themeChips() {
+    const host = h('div.chips', { role: 'group', 'aria-label': 'Theme' });
+    const draw = () => {
+      const current = document.documentElement.dataset.theme || 'dark';
+      host.replaceChildren(
+        ...[
+          ['dark', 'Dark'],
+          ['light', 'Light'],
+          ['auto', 'Match my phone'],
+        ].map(([value, label]) =>
+          h(`button.chip${current === value ? '.active' : ''}`, { type: 'button', 'aria-pressed': current === value, onclick: () => {
+            document.documentElement.dataset.theme = value;
+            try {
+              localStorage.setItem('pm-theme', value);
+            } catch {
+              // Not saved, but applied for now.
+            }
+            draw();
+          } }, label),
+        ),
+      );
+    };
+    draw();
+    return host;
+  }
 
   async function clearAll() {
     const ok = await confirmDialog({
@@ -104,6 +136,12 @@ export async function render(view) {
     if (!ok) return;
     await db.clearAll();
     resetSettingsCache();
+    try {
+      localStorage.removeItem('pm-theme');
+      localStorage.removeItem('pm-level');
+    } catch {
+      // Nothing stored.
+    }
     toast('All data cleared.');
     location.hash = '#/home';
     location.reload();

@@ -204,7 +204,16 @@ export async function render(view, { arg, params }) {
         );
       }
     }
-    movesHost.querySelector('.current')?.scrollIntoView({ block: 'nearest' });
+    // Keep the current move visible by scrolling the move list only, never the page
+    // (scrollIntoView would drag the whole page down to the list on a phone).
+    const cur = movesHost.querySelector('.current');
+    if (cur) {
+      const top = cur.offsetTop;
+      const bottom = top + cur.offsetHeight;
+      if (top < movesHost.scrollTop || bottom > movesHost.scrollTop + movesHost.clientHeight) {
+        movesHost.scrollTop = Math.max(0, top - movesHost.clientHeight / 2);
+      }
+    }
   }
 
   let graph = null;

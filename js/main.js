@@ -2,7 +2,7 @@
 import { syncGames } from './chesscom.js';
 import { db, getSettings, on } from './db.js';
 import { puzzleCounts } from './puzzles.js';
-import { enqueue } from './reviewer.js';
+import { enqueue, queueState } from './reviewer.js';
 import { $, clear, h, timeAgo, toast } from './ui.js';
 import { getKv } from './db.js';
 
@@ -122,15 +122,22 @@ export async function autoSync({ force = false } = {}) {
   try {
     const result = await syncGames({ force });
     if (result.added) toast(`${result.added} new game${result.added === 1 ? '' : 's'} from chess.com`);
-    if (settings.autoReview && result.games?.length) {
-      const newest = [...result.games].sort((a, b) => b.date - a.date).slice(0, 3);
-      enqueue(newest);
-    }
+    autoReviewSome();
     return result;
   } catch (e) {
     toast(e.message, { kind: 'error' });
+    autoReviewSome();
     return null;
   }
+}
+
+/** Each time the app opens, review the newest few unreviewed games in the background. */
+async function autoReviewSome() {
+  const { autoReview } = await getSettings();
+  const q = queueState();
+  if (!autoReview || q.running || q.queue.length) return;
+  const games = (await db.all('games')).filter((g) => !g.reviewed && g.timeClass !== 'daily').sort((a, b) => b.date - a.date);
+  if (games.length) enqueue(games.slice(0, 3));
 }
 
 async function start() {

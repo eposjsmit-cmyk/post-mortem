@@ -83,7 +83,22 @@ export function createBoard(el, opts = {}) {
     },
   });
 
+  let destroyed = false;
+  // Arrows and badges need the board's size; if it has none yet (hidden or not laid out), draw them later.
+  const hasSize = () => boardEl.isConnected && boardEl.offsetWidth > 0;
+  const drawShapes = () => {
+    if (destroyed) return;
+    if (hasSize()) cg.setAutoShapes(shapes);
+  };
+  const resizeObserver = new ResizeObserver(() => {
+    if (!hasSize() || destroyed) return;
+    cg.redrawAll();
+    cg.setAutoShapes(shapes);
+  });
+  resizeObserver.observe(boardEl);
+
   function sync(extra = {}) {
+    if (destroyed) return;
     const turn = chess.turn() === 'w' ? 'white' : 'black';
     const canMove = interactive && !chess.isGameOver() && (!movableColor || movableColor === turn);
     cg.set({
@@ -93,7 +108,7 @@ export function createBoard(el, opts = {}) {
       movable: { color: canMove ? turn : undefined, dests: canMove ? destsFor(chess) : new Map() },
       ...extra,
     });
-    cg.setAutoShapes(shapes);
+    drawShapes();
   }
 
   sync({ lastMove: opts.lastMove });
@@ -106,6 +121,7 @@ export function createBoard(el, opts = {}) {
     },
     /** Show a position. */
     setPosition(fen, { lastMove, shapes: s = [] } = {}) {
+      if (destroyed) return;
       chess = new Chess(fen);
       shapes = s.filter(Boolean);
       sync({ lastMove: lastMove ?? undefined });
@@ -113,7 +129,7 @@ export function createBoard(el, opts = {}) {
     },
     setShapes(s) {
       shapes = s.filter(Boolean);
-      cg.setAutoShapes(shapes);
+      drawShapes();
     },
     setInteractive(on, color = null) {
       interactive = on;
@@ -125,6 +141,7 @@ export function createBoard(el, opts = {}) {
     },
     /** Plays a move from code (e.g. the engine's reply), with animation. */
     playUci(uci) {
+      if (destroyed) return null;
       const m = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
       cg.move(m.from, m.to);
       sync({ lastMove: [m.from, m.to] });
@@ -138,6 +155,9 @@ export function createBoard(el, opts = {}) {
       cg.set({ orientation: o });
     },
     destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      resizeObserver.disconnect();
       cg.destroy();
       wrap.remove();
     },

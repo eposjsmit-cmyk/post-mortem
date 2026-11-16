@@ -470,7 +470,10 @@ export async function render(view, { arg, params }) {
   return () => {
     offReviews();
     document.removeEventListener('keydown', onKey);
-    liveJob?.cancel();
+    // Clear liveJob first so the engine's final update for it is ignored.
+    const job = liveJob;
+    liveJob = null;
+    job?.cancel();
     board.destroy();
   };
 }

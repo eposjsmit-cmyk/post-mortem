@@ -71,6 +71,7 @@ const DEFAULT_SETTINGS = {
   username: '',
   monthsBack: 3,
   apiKey: '',
+  model: 'claude-opus-5-5',
   showEngineArrow: true,
   autoReview: true,
   boardFlipped: false,

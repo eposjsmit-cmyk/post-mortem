@@ -83,6 +83,13 @@ export function createBoard(el, opts = {}) {
     },
   });
 
+  // The board library remembers where the board is on screen and only re-measures when the page scrolls.
+  // If text above the board changes height (or a font loads), the board moves and touches would land on
+  // the wrong square, so measure again at the start of every touch or click (before the library sees it).
+  const remeasure = () => cg.state.dom.bounds.clear();
+  boardEl.addEventListener('touchstart', remeasure, { capture: true, passive: true });
+  boardEl.addEventListener('mousedown', remeasure, { capture: true, passive: true });
+
   let destroyed = false;
   // Arrows and badges need the board's size; if it has none yet (hidden or not laid out), draw them later.
   const hasSize = () => boardEl.isConnected && boardEl.offsetWidth > 0;

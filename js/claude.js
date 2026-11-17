@@ -6,6 +6,33 @@ import { getSettings, getKv } from './db.js';
 
 export const MODEL = 'claude-opus-5-5';
 
+/** Models you can choose in Settings (cheaper ones still explain chess moves well). */
+export const MODELS = [
+  { id: 'claude-opus-5-5', label: 'Opus 5.5', note: 'The best explanations. Costs the most.' },
+  { id: 'claude-sonnet-5-5', label: 'Sonnet 5.5', note: 'Very good, and noticeably cheaper.' },
+  { id: 'claude-haiku-5-5', label: 'Haiku 5.5', note: 'Quick and the cheapest. Fine for short answers.' },
+];
+const modelOf = (settings) => (MODELS.some((m) => m.id === settings.model) ? settings.model : MODEL);
+export const modelLabel = (id) => MODELS.find((m) => m.id === id)?.label ?? id;
+
+/**
+ * Hands the full question to the Claude app on this phone (share sheet), or copies it where sharing isn't
+ * available. Uses your Claude subscription, so there's no API cost. Returns 'shared' | 'copied' | 'cancelled'.
+ */
+export async function sendToClaudeApp(req) {
+  const text = promptText(req);
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    try {
+      await navigator.share({ title: req.title ?? 'Chess question', text });
+      return 'shared';
+    } catch (e) {
+      if (e?.name === 'AbortError') return 'cancelled';
+    }
+  }
+  await copyPrompt(req);
+  return 'copied';
+}
+
 const PIECE_NAMES = { k: 'King', q: 'Queen', r: 'Rook', b: 'Bishop', n: 'Knight', p: 'Pawn' };
 
 /** "White: King g1, Queen d1, Pawns a2 b2 …" for both sides. */
@@ -120,17 +147,17 @@ export const KEYS_URL = 'https://console.anthropic.com/settings/keys';
  * Checks a key without generating an answer (it only looks up the model, which is free).
  * Resolves { ok: true } or { ok: false, message }.
  */
-export async function checkKey(apiKey) {
+export async function checkKey(apiKey, model = MODEL) {
   const key = apiKey.trim();
   if (!key) return { ok: false, message: 'Paste your key first.' };
   if (!key.startsWith('sk-ant-')) return { ok: false, message: 'That does not look like an Anthropic key. It should start with "sk-ant-".' };
   const { default: Anthropic } = await loadSdk();
   const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 1 });
   try {
-    await client.models.retrieve(MODEL);
+    await client.models.retrieve(model);
     return { ok: true };
   } catch (e) {
-    if (e instanceof Anthropic.NotFoundError) return { ok: false, message: `The key works, but this account can't use ${MODEL} yet.` };
+    if (e instanceof Anthropic.NotFoundError) return { ok: false, message: `The key works, but this account can't use ${modelLabel(model)} yet. Try another model.` };
     return { ok: false, message: friendlyError(e, Anthropic) };
   }
 }
@@ -140,8 +167,10 @@ export async function checkKey(apiKey) {
  * Returns the full answer text. Throws an Error with a friendly message on failure.
  */
 export async function askClaude(req, { onText, onStatus, signal } = {}) {
-  const { apiKey } = await getSettings();
-  if (!apiKey) throw new Error('Add your Anthropic API key in Settings first, or use "Copy for Claude".');
+  const settings = await getSettings();
+  const { apiKey } = settings;
+  const model = modelOf(settings);
+  if (!apiKey) throw new Error('Connect Claude in Settings first, or send the question to the Claude app.');
   const { default: Anthropic } = await loadSdk();
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
@@ -158,13 +187,13 @@ export async function askClaude(req, { onText, onStatus, signal } = {}) {
   onStatus?.('thinking');
   let text = '';
   try {
+    const isOpus = model.startsWith('claude-opus');
     const stream = client.beta.messages.stream(
       {
-        model: MODEL,
+        model,
         max_tokens: 16000,
-        // If Claude declines for safety reasons, the API retries on a fallback model in the same call.
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
+        // On Opus: if Claude declines for safety reasons, the API retries on a fallback model in the same call.
+        ...(isOpus ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
         output_config: { effort: 'medium' },
         system: req.system,
         messages,

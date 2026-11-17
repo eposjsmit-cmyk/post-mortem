@@ -1,5 +1,5 @@
 import { fetchStats } from '../chesscom.js';
-import { KEYS_URL, MODEL, checkKey } from '../claude.js';
+import { KEYS_URL, MODELS, checkKey } from '../claude.js';
 import { db, getKv, getSettings, resetSettingsCache, saveSettings, setKv } from '../db.js';
 import { autoSync } from '../main.js';
 import { THEMES, applyTheme, currentTheme } from '../theme.js';
@@ -91,13 +91,15 @@ export async function render(view, { params } = {}) {
       claudeCard.replaceChildren(
         h('div.row.between', h('h2', 'Claude coach'), pill),
         h('p', 'Every "Ask Claude" button now answers right here in the app, and you can ask follow-up questions.'),
-        h('p.muted.small', `Key ending in …${savedKey.slice(-4)} · saved only on this device · model ${MODEL}`),
+        h('p.muted.small', `Key ending in …${savedKey.slice(-4)} · saved only on this device`),
+        h('span.small.muted', 'Which Claude answers'),
+        modelPicker(),
         h(
           'div.row.wrap',
           h('button.btn', { type: 'button', onclick: async (e) => {
             e.currentTarget.disabled = true;
             msg.textContent = 'Checking…';
-            const r = await checkKey(savedKey);
+            const r = await checkKey(savedKey, (await getSettings()).model);
             drawClaude(savedKey, { message: r.ok ? 'All good: Claude is reachable.' : r.message });
           } }, 'Test connection'),
           h('button.btn', { type: 'button', onclick: () => drawClaude(savedKey, { editing: true }) }, 'Change key'),
@@ -128,7 +130,7 @@ export async function render(view, { params } = {}) {
       connectBtn.disabled = true;
       msg.className = 'small';
       msg.textContent = 'Checking your key with Anthropic…';
-      const r = await checkKey(keyInput.value);
+      const r = await checkKey(keyInput.value, (await getSettings()).model);
       connectBtn.disabled = false;
       if (!r.ok) {
         msg.className = 'small bad-text';
@@ -164,8 +166,32 @@ export async function render(view, { params } = {}) {
           ),
         ),
       ),
-      h('p.muted.small', 'Your key is saved only on this device and is sent only to Anthropic. You pay Anthropic directly for each answer. Without a key, "Copy for Claude" still works: it copies a ready-made question you can paste into the Claude app.'),
+      h('p.muted.small', 'The API is paid separately from a Claude subscription: you pay Anthropic per answer (you can pick a cheaper model once connected). Your key is saved only on this device and is sent only to Anthropic.'),
+      h('p.small', h('strong', 'No key? '), 'Every Claude button still works: it opens your Claude app with the question ready, using your normal Claude subscription.'),
     );
+  }
+
+  /** Opus / Sonnet / Haiku: better answers or lower cost. */
+  function modelPicker() {
+    const host = h('div.stack', { role: 'radiogroup', 'aria-label': 'Claude model' });
+    const draw = async () => {
+      const chosen = (await getSettings()).model;
+      host.replaceChildren(
+        ...MODELS.map((m) =>
+          h(
+            `button.model-option${chosen === m.id ? '.active' : ''}`,
+            { type: 'button', role: 'radio', 'aria-checked': chosen === m.id, onclick: async () => {
+              await saveSettings({ model: m.id });
+              draw();
+            } },
+            h('strong', m.label),
+            h('span.muted.small', m.note),
+          ),
+        ),
+      );
+    };
+    draw();
+    return host;
   }
 
   /** Theme cards with a little preview of each look. */

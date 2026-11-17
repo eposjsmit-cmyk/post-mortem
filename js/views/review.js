@@ -10,7 +10,7 @@ import { getEngine } from '../engine.js';
 import { TERMINATION_LABELS, myResult, parseTimeControl } from '../pgn.js';
 import { puzzlesFromReview } from '../puzzles.js';
 import { positionsOf, queueState, reviewNow } from '../reviewer.js';
-import { TIME_CLASS_LABEL, clear, emptyState, fmtClock, fmtDate, fmtSeconds, h, progressBar, toast } from '../ui.js';
+import { TIME_CLASS_LABEL, clear, emptyState, fmtClock, fmtDate, fmtSeconds, h, progressBar, sheet, toast } from '../ui.js';
 
 const LIVE_DEPTH = 18;
 const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -115,9 +115,11 @@ export async function render(view, { arg, params }) {
       const name = side === 'w' ? game.white : game.black;
       const elo = side === 'w' ? game.whiteElo : game.blackElo;
       const acc = review?.summary[side]?.accuracy;
+      const label = `${name}${elo ? ` (${elo})` : ''}${side === me ? ' · you' : ''}`;
+      const isOpponent = me && side !== me && game.timeClass !== 'practice';
       return [
         h(`span.dot-colour.${side}`),
-        h('span.name', `${name}${elo ? ` (${elo})` : ''}${side === me ? ' · you' : ''}`),
+        isOpponent ? h('button.name.name-link', { type: 'button', title: `Prep for ${name}`, onclick: () => opponentMenu(name) }, label, h('span.name-caret', { 'aria-hidden': 'true' }, ' ▾')) : h('span.name', label),
         acc != null ? h('span.pill', { title: 'Accuracy' }, `${Math.round(acc)}%`) : null,
         clocks[side] != null ? h(`span.clock${!variation && turn === side && idx < n ? '.active' : ''}`, fmtClock(clocks[side])) : null,
       ];
@@ -125,6 +127,19 @@ export async function render(view, { arg, params }) {
     const bottomSide = board.orientation() === 'white' ? 'w' : 'b';
     clear(bottomPlayer).append(...row(bottomSide));
     clear(topPlayer).append(...row(bottomSide === 'w' ? 'b' : 'w'));
+  }
+
+  function opponentMenu(name) {
+    const s = sheet(
+      name,
+      h(
+        'div.stack',
+        h('p.muted', 'Getting ready to play them again?'),
+        h('a.btn.primary', { href: `#/prep?name=${encodeURIComponent(name)}`, onclick: () => s.close() }, `🔍 Prep for ${name}`),
+        h('p.muted.small', 'Shows their openings, how they play against yours, and where to steer the game.'),
+        h('a.btn', { href: `https://www.chess.com/member/${encodeURIComponent(name)}`, target: '_blank', rel: 'noopener', onclick: () => s.close() }, 'chess.com profile ↗'),
+      ),
+    );
   }
 
   function refreshShapes() {

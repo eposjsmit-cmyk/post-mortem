@@ -489,6 +489,40 @@ dialog::backdrop { background: rgb(0 0 0 / 0.45); }
 .arrow-green { color: var(--win); }
 .arrow-blue { color: #5b8cff; }
 
+/* Claude model choice */
+.model-option { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 14px; border-radius: 12px; border: 2px solid var(--border-strong); background: var(--surface-2); color: var(--text); text-align: left; }
+.model-option.active { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Opponent name on the review screen: tap for Prep */
+.name-link { border: 0; background: none; padding: 2px 0; color: var(--accent); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer; text-align: left; }
+.name-caret { color: var(--muted); font-size: 0.8em; }
+
+/* Puzzles: nav squares + actions in one row; engine lines you can tap */
+.puzzle-dock { display: flex; gap: 8px; flex-wrap: wrap; }
+.puzzle-dock .btn { flex: 1 1 auto; }
+.puzzle-dock .nav-sq { flex: 0 0 48px; padding: 0; font-size: 1.05rem; }
+.move-strip .ctx, .move-strip button.ctx { opacity: 0.7; }
+.move-strip button.sol, .move-strip button.alt { color: var(--win); }
+.move-strip button.game { color: var(--loss); }
+.move-strip button.explore { font-style: italic; }
+.move-strip .marker { align-self: center; padding: 0 2px 0 6px; }
+.line-btn { width: 100%; border: 0; background: none; color: inherit; text-align: left; padding: 6px 4px; border-radius: 8px; font: inherit; font-size: 0.85rem; }
+.line-btn:hover, .line-btn:active { background: var(--surface-2); }
+.line-btn .win { margin-left: auto; flex: none; }
+@media (max-width: 760px) {
+  .dock.row.puzzle-dock { flex-wrap: nowrap; gap: 6px; }
+  .dock.row.puzzle-dock .btn { flex: 1 1 0; min-width: 0; padding: 0 4px; font-size: 0.85rem; }
+  .dock.row.puzzle-dock .btn.nav-sq { flex: 0 0 42px; font-size: 1rem; }
+  /* Smaller stats so the board fits above the pinned buttons. */
+  #view[data-route='puzzles'] { gap: 12px; }
+  #view[data-route='puzzles'] .page-head h1 { font-size: 1.3rem; }
+  #view[data-route='puzzles'] .tiles.compact .tile { padding: 6px 4px; }
+  #view[data-route='puzzles'] .tiles.compact .tile-value { font-size: 1.1rem; }
+  #view[data-route='puzzles'] .tiles.compact .tile-label { font-size: 0.56rem; }
+  /* Keep the board from jumping when the message under the heading changes length. */
+  #view[data-route='puzzles'] .puzzle-status { min-height: calc(3em + 26px); display: flex; align-items: center; }
+}
+
 /* Theme picker */
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
 .theme-card { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 14px; border: 2px solid var(--border-strong); background: var(--surface-2); color: var(--text); text-align: left; }

@@ -4,6 +4,7 @@ import { VERDICT_COLOURS, arrow, badgeShape, createBoard, evalBar } from '../boa
 import { advantageGraph } from '../charts.js';
 import { QUICK_QUESTIONS, moveFacts, positionFacts } from '../claude.js';
 import { claudePanel } from '../claudePanel.js';
+import { openReviewHelp } from '../help.js';
 import { db, emit, getSettings, on, saveSettings } from '../db.js';
 import { getEngine } from '../engine.js';
 import { TERMINATION_LABELS, myResult, parseTimeControl } from '../pgn.js';
@@ -12,6 +13,7 @@ import { positionsOf, queueState, reviewNow } from '../reviewer.js';
 import { TIME_CLASS_LABEL, clear, emptyState, fmtClock, fmtDate, fmtSeconds, h, progressBar, toast } from '../ui.js';
 
 const LIVE_DEPTH = 18;
+const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export async function render(view, { arg, params }) {
   let game = await db.get('games', arg);
@@ -146,7 +148,7 @@ export async function render(view, { arg, params }) {
     clear(whyHost);
     if (variation) return;
     if (idx === 0) {
-      banner.append(h('div.move-banner', h('strong', 'Start of the game'), h('span.muted', 'Use ▶ or the arrow keys to step through the moves.')));
+      banner.append(h('div.move-banner', h('strong', 'Start of the game'), h('span.muted', 'Tap ▶ to step through the moves. Moves marked ?! ? or ?? are the ones worth a closer look.')));
       return;
     }
     const p = plyAt(idx - 1);
@@ -159,16 +161,19 @@ export async function render(view, { arg, params }) {
     }
     const info = VERDICT_INFO[p.verdict];
     const who = p.mover === me ? 'your' : me ? 'their' : p.mover === 'w' ? "White's" : "Black's";
-    const lines = [];
-    if (p.verdict === 'forced') lines.push('The only legal move.');
-    else if (p.verdict === 'best') lines.push(p.uci === p.best ? 'The engine’s top move.' : `As good as the engine’s move (${p.bestSan}).`);
-    else lines.push(`Best was ${p.bestSan} · ${who} winning chances dropped ${p.drop.toFixed(1)}%`);
+    const before = Math.round(p.winBefore);
+    const after = Math.round(p.winAfter);
+    let line;
+    if (p.verdict === 'forced') line = 'The only legal move.';
+    else if (p.verdict === 'best') line = p.uci === p.best ? 'The engine’s top move. 👍' : `Just as good as the engine’s choice (${p.bestSan}). 👍`;
+    else if (p.verdict === 'excellent' || p.verdict === 'good') line = `Fine move. The engine slightly preferred ${p.bestSan}.`;
+    else line = `Better was ${p.bestSan}. ${capitalise(who)} winning chance went from ${before}% to ${after}%.`;
     banner.append(
       h(
         `div.move-banner.v-${p.verdict}`,
-        h('div.row.between', h('span.verdict', h('span.verdict-sym', info.symbol), `${label} · ${info.label}`), h('span.muted.small', `${fmtScore(p.scoreAfter)}`)),
-        h('span', lines.join(' ')),
-        h('span.muted.small', [p.timeSpent != null ? `Time spent: ${fmtSeconds(p.timeSpent)}` : null, p.type ? `Type: ${MISTAKE_TYPES[p.type]}` : null, `Winning chance ${Math.round(p.winBefore)}% → ${Math.round(p.winAfter)}%`].filter(Boolean).join(' · ')),
+        h('div.row.between', h('span.verdict', h('span.verdict-sym', info.symbol), `${label} · ${info.label}`), h('button.help-btn', { type: 'button', onclick: openReviewHelp, 'aria-label': 'What do these mean?', title: 'What do these mean?' }, '?')),
+        h('span', line),
+        h('span.muted.small', [p.type ? MISTAKE_TYPES[p.type] : null, p.timeSpent != null ? `${fmtSeconds(p.timeSpent)} spent` : null, `engine score ${fmtScore(p.scoreAfter)}`].filter(Boolean).join(' · ')),
       ),
     );
     const bad = ['inaccuracy', 'mistake', 'blunder'].includes(p.verdict);
@@ -265,7 +270,7 @@ export async function render(view, { arg, params }) {
     const cell = (v) => h('span.num', String(v));
     const rows = ['best', 'excellent', 'good', 'inaccuracy', 'mistake', 'blunder', 'forced'];
     reportHost.append(
-      h('h2', 'Game report'),
+      h('div.row.between', h('h2', 'Game report'), h('button.btn.small', { type: 'button', onclick: openReviewHelp }, 'What do these mean?')),
       h(
         'div.report',
         h('span'),

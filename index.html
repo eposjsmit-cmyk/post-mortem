@@ -9,11 +9,16 @@
     <meta name="color-scheme" content="dark light" />
     <script>
       // Apply the chosen theme before the page draws (dark unless changed in Settings).
-      try {
-        document.documentElement.dataset.theme = localStorage.getItem('pm-theme') || 'dark';
-      } catch (e) {
-        document.documentElement.dataset.theme = 'dark';
-      }
+      (function () {
+        var t = 'dark';
+        try {
+          t = localStorage.getItem('pm-theme') || 'dark';
+        } catch (e) {}
+        document.documentElement.dataset.theme = t;
+        var bars = { light: '#f4f5f8', sketch: '#f5efe0' };
+        if (t === 'auto' && matchMedia('(prefers-color-scheme: light)').matches) t = 'light';
+        if (bars[t]) document.querySelector('meta[name="theme-color"]').setAttribute('content', bars[t]);
+      })();
     </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />

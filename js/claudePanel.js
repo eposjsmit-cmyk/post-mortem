@@ -21,13 +21,21 @@ export function claudePanel(opts) {
   const askBtn = h('button.btn.primary', { type: 'button', onclick: () => run(opts.question) }, opts.label ?? 'Ask Claude');
   const copyBtn = h('button.btn', { type: 'button', onclick: () => copy(opts.question) }, 'Copy for Claude');
   const stopBtn = h('button.btn', { type: 'button', hidden: true, onclick: () => controller?.abort() }, 'Stop');
-  const el = h(`section.claude${opts.compact ? '.compact' : ''}`, h('div.row.wrap', askBtn, copyBtn, stopBtn), status, out, follow);
+  const hint = h('p.claude-hint.small', { hidden: true }, '✨ Want the answer right here? ', h('a', { href: '#/settings?section=claude' }, 'Connect Claude'), ' (2 minutes).');
+  const el = h(`section.claude${opts.compact ? '.compact' : ''}`, h('div.row.wrap', askBtn, copyBtn, stopBtn), hint, status, out, follow);
 
   hasApiKey().then((has) => {
-    if (!has) {
-      askBtn.classList.remove('primary');
-      askBtn.title = 'Add an API key in Settings to get answers here';
+    if (has) {
+      // Connected: the answer comes straight into the app, so copying is a quiet extra.
+      copyBtn.classList.add('subtle');
+      copyBtn.textContent = 'Copy';
+      copyBtn.title = 'Copy the question to paste into a Claude chat';
+    } else {
+      askBtn.hidden = true;
       copyBtn.classList.add('primary');
+      copyBtn.textContent = `${opts.label ?? 'Ask Claude'} (copy)`;
+      copyBtn.title = 'Copies a ready-made question to paste into the Claude app';
+      hint.hidden = false;
     }
   });
 
@@ -38,7 +46,7 @@ export function claudePanel(opts) {
   async function copy(question) {
     const req = await request(question);
     await copyPrompt(req);
-    toast('Copied. Paste it into a Claude chat.');
+    toast('Copied! Open the Claude app and paste it in.');
   }
 
   async function run(question) {
@@ -116,6 +124,7 @@ export function claudePanel(opts) {
       status.textContent = '';
       follow.hidden = true;
       askBtn.textContent = opts.label ?? 'Ask Claude';
+      if (askBtn.hidden) copyBtn.textContent = `${opts.label ?? 'Ask Claude'} (copy)`;
     },
   };
 }

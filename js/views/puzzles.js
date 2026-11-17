@@ -7,6 +7,15 @@ import { evaluate, getEngine } from '../engine.js';
 import { ALT_TOLERANCE, dueQueue, puzzleCounts, schedule } from '../puzzles.js';
 import { clear, emptyState, fmtDate, h, timeAgo, toast } from '../ui.js';
 
+/** A short vibration on phones that support it (Android); silently does nothing elsewhere. */
+const buzz = (pattern) => {
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    // Not allowed here.
+  }
+};
+
 export async function render(view, { params }) {
   let type = params.type && MISTAKE_TYPES[params.type] ? params.type : null;
   let anyway = params.anyway === '1';
@@ -107,7 +116,7 @@ export async function render(view, { params }) {
     }
     const p = current;
     const side = p.color === 'w' ? 'White' : 'Black';
-    const status = h('p.puzzle-status', `Find the best move for ${side}.`);
+    const status = h('p.puzzle-status', `Find the best move for ${side} (drag or tap a piece).`);
     const boardHost = h('div.board-col');
     const after = h('div.stack');
     const hintBtn = h('button.btn', { type: 'button', onclick: hint }, 'Hint');
@@ -148,6 +157,7 @@ export async function render(view, { params }) {
       const drop = p.winBefore - winAfter;
       if (drop <= ALT_TOLERANCE) return solved(true, uci, drop);
       attempt.wrong = true;
+      buzz([60, 80, 60]);
       await record('wrong');
       status.className = 'puzzle-status bad';
       status.textContent = `Not quite. That keeps only ${Math.round(winAfter)}% winning chances (a drop of ${Math.round(drop)}%). Try again.`;
@@ -160,6 +170,7 @@ export async function render(view, { params }) {
 
     async function solved(alternative, uci, drop) {
       attempt.solved = true;
+      buzz(40);
       board.setInteractive(false);
       const result = attempt.wrong ? 'wrong' : attempt.hint ? 'hint' : 'right';
       await record(result);

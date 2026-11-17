@@ -1,7 +1,7 @@
 // Offline support: try the network first and fall back to the cached copy.
 // The chess engine, board and app files are cached as they are used.
 // Keep in step with js/version.js.
-const CACHE = 'post-mortem-1.2.0';
+const CACHE = 'post-mortem-1.3.0';
 const SHELL = [
   './',
   './index.html',

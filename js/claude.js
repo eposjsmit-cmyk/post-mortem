@@ -113,6 +113,28 @@ export async function hasApiKey() {
 let sdkPromise = null;
 const loadSdk = () => (sdkPromise ??= import('../vendor/anthropic-sdk.js'));
 
+/** Where to create a key. */
+export const KEYS_URL = 'https://console.anthropic.com/settings/keys';
+
+/**
+ * Checks a key without generating an answer (it only looks up the model, which is free).
+ * Resolves { ok: true } or { ok: false, message }.
+ */
+export async function checkKey(apiKey) {
+  const key = apiKey.trim();
+  if (!key) return { ok: false, message: 'Paste your key first.' };
+  if (!key.startsWith('sk-ant-')) return { ok: false, message: 'That does not look like an Anthropic key. It should start with "sk-ant-".' };
+  const { default: Anthropic } = await loadSdk();
+  const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 1 });
+  try {
+    await client.models.retrieve(MODEL);
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof Anthropic.NotFoundError) return { ok: false, message: `The key works, but this account can't use ${MODEL} yet.` };
+    return { ok: false, message: friendlyError(e, Anthropic) };
+  }
+}
+
 /**
  * Streams Claude's answer. onText receives each new piece of text.
  * Returns the full answer text. Throws an Error with a friendly message on failure.
@@ -166,9 +188,10 @@ export async function askClaude(req, { onText, onStatus, signal } = {}) {
 }
 
 function friendlyError(e, Anthropic) {
-  if (e instanceof Anthropic.AuthenticationError) return 'Your API key was not accepted. Check it in Settings.';
+  if (e instanceof Anthropic.AuthenticationError) return 'That key was not accepted. Check you copied all of it, or make a new one.';
   if (e instanceof Anthropic.PermissionDeniedError) return 'This API key is not allowed to use this model.';
   if (e instanceof Anthropic.RateLimitError) return 'Too many requests right now. Wait a moment and try again.';
+  if (e instanceof Anthropic.BadRequestError && /credit balance/i.test(e.message)) return 'Your Anthropic account is out of credit. Add some under Billing at console.anthropic.com, then try again.';
   if (e instanceof Anthropic.BadRequestError) return `Claude could not take this request: ${e.message}`;
   if (e instanceof Anthropic.APIConnectionError) return 'Could not reach Claude. Check your internet connection.';
   if (e instanceof Anthropic.APIError) return `Claude had a problem (${e.status ?? 'error'}). Try again shortly.`;

@@ -1,7 +1,7 @@
 import { MISTAKE_TYPES } from '../analysis.js';
 import { SERIES, barList, resultBars, timeLineChart } from '../charts.js';
 import { claudePanel } from '../claudePanel.js';
-import { db, getKv, getSettings, on, saveSettings } from '../db.js';
+import { db, getKv, getSettings, on, saveSettings, setKv } from '../db.js';
 import { autoSync } from '../main.js';
 import { buildTree, lineLists, minGamesFor, pathText } from '../openings.js';
 import { TERMINATION_LABELS } from '../pgn.js';
@@ -20,9 +20,9 @@ export async function render(view) {
   const host = h('div.stack', { style: { gap: '14px' } });
   view.append(host);
   const draw = async () => {
-    const [games, reviews, puzzles, stats] = await Promise.all([db.all('games'), db.all('reviews'), db.all('puzzles'), getKv('stats')]);
+    const [games, reviews, puzzles, stats, introDone, fresh] = await Promise.all([db.all('games'), db.all('reviews'), db.all('puzzles'), getKv('stats'), getKv('introDone', false), getSettings()]);
     clear(host);
-    build(host, { games, reviews, puzzles, ratings: stats?.ratings ?? {}, settings });
+    build(host, { games, reviews, puzzles, ratings: stats?.ratings ?? {}, settings: fresh, introDone, redraw: draw });
   };
   await draw();
   let pending = 0;
@@ -67,7 +67,7 @@ function welcome(view) {
   );
 }
 
-function build(host, { games, reviews, puzzles, ratings, settings }) {
+function build(host, { games, reviews, puzzles, ratings, settings, introDone, redraw }) {
   const mineGames = games.filter((g) => g.myColor);
   const counts = puzzleCounts(puzzles);
   const avgAcc = averageAccuracy(mineGames);
@@ -76,8 +76,11 @@ function build(host, { games, reviews, puzzles, ratings, settings }) {
 
   // ---------- Tiles ----------
   const tile = (label, value, sub) => h('div.tile', h('span.tile-label', label), h('span.tile-value', value), sub ? h('span.tile-sub', sub) : null);
+  host.append(h('div.page-head', h('div.stack', { style: { gap: '2px' } }, h('h1', settings.username ? `Hi ${settings.username} 👋` : 'Home'), h('p.muted', greeting(counts.due, unreviewed.length))), h('a.btn', { href: '#/games' }, 'Your games')));
+
+  if (!introDone) host.append(introCard(redraw));
+
   host.append(
-    h('div.page-head', h('h1', settings.username ? `Hi ${settings.username}` : 'Home'), h('a.btn', { href: '#/games' }, 'Your games')),
     h(
       'div.tiles',
       ...TIME_CLASSES.filter((tc) => ratings[tc]?.rating).map((tc) => tile(TIME_CLASS_LABEL[tc], String(ratings[tc].rating), ratings[tc].best ? `best ${ratings[tc].best}` : null)),
@@ -111,6 +114,8 @@ function build(host, { games, reviews, puzzles, ratings, settings }) {
     const n = enqueue(unreviewed);
     toast(n ? `Reviewing ${n} game${n === 1 ? '' : 's'}. Progress is on the Games tab.` : 'Already in the queue.');
   } }, 'Review all')));
+
+  if (!settings.apiKey) todo.push(item('✨', 'Get a coach: connect Claude', 'Claude explains your mistakes in plain words, right inside the app. Takes about two minutes.', h('a.btn.small', { href: '#/settings?section=claude' }, 'Connect Claude')));
 
   host.append(h('section.card', h('h2', 'Work on this next'), todo.length ? todo : h('p.muted', 'All caught up. Play a game, or practise anyway on the Puzzles tab.')));
 
@@ -202,6 +207,35 @@ function build(host, { games, reviews, puzzles, ratings, settings }) {
         chips: ['Make it fit 20 minutes a day', 'Which opening should I learn next?', 'How do I stop blundering pieces?'],
       }).el,
     ),
+  );
+}
+
+/** One friendly line under the greeting. */
+function greeting(due, unreviewed) {
+  const hour = new Date().getHours();
+  const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  if (due) return `${part}! ${due} puzzle${due === 1 ? ' is' : 's are'} waiting for you.`;
+  if (unreviewed) return `${part}! Your newest games are being checked in the background.`;
+  return `${part}! You're all caught up.`;
+}
+
+/** First-visit card: what the app does, in three steps. */
+function introCard(redraw) {
+  const step = (icon, title, text) => h('li.intro-step', h('span.intro-icon', { 'aria-hidden': 'true' }, icon), h('div', h('strong', title), h('p.muted.small', text)));
+  return h(
+    'section.card.intro',
+    h('h2', 'How Post-Mortem works'),
+    h(
+      'ol.intro-steps',
+      step('♟️', 'Your games come in by themselves', 'Every time you open the app, new chess.com games are fetched.'),
+      step('🔍', 'Each move gets checked', 'Stockfish looks at every move on this phone and marks the good ones and the slips.'),
+      step('🧩', 'Your mistakes become puzzles', 'Solve them on the Puzzles tab. Get one right and it comes back less often.'),
+      step('✨', 'Ask why', 'Tap a move, then "Why was this a mistake?" for a plain-words explanation.'),
+    ),
+    h('div.row.wrap', h('button.btn.primary', { type: 'button', onclick: async () => {
+      await setKv('introDone', true);
+      redraw();
+    } }, 'Got it')),
   );
 }
 

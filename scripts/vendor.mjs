@@ -9,7 +9,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const nm = (p) => join(root, 'node_modules', p);
 const out = (p) => join(root, 'vendor', p);
 
-for (const d of ['vendor', 'vendor/stockfish', 'vendor/chessground']) mkdirSync(join(root, d), { recursive: true });
+for (const d of ['vendor', 'vendor/stockfish', 'vendor/chessground', 'vendor/fonts']) mkdirSync(join(root, d), { recursive: true });
+
+// Handwriting fonts for the Sketchbook theme (only downloaded when that theme is on).
+copyFileSync(nm('@fontsource/patrick-hand/files/patrick-hand-latin-400-normal.woff2'), out('fonts/patrick-hand.woff2'));
+copyFileSync(nm('@fontsource/caveat/files/caveat-latin-700-normal.woff2'), out('fonts/caveat-700.woff2'));
 
 // Stockfish: the lite single-threaded WASM build (needs no special server headers) plus the asm.js fallback.
 for (const f of ['stockfish-19-lite-single.js', 'stockfish-19-lite-single.wasm', 'stockfish-19-asm.js']) {
@@ -41,6 +45,8 @@ const licences = [
   ['chess.js (BSD-2-Clause)', 'chess.js/LICENSE'],
   ['chessground (GPL-3.0)', 'chessground/LICENSE'],
   ['@anthropic-ai/sdk (MIT)', '@anthropic-ai/sdk/LICENSE'],
+  ['Patrick Hand font (SIL Open Font License 1.1)', '@fontsource/patrick-hand/LICENSE'],
+  ['Caveat font (SIL Open Font License 1.1)', '@fontsource/caveat/LICENSE'],
 ];
 let text = 'Third-party libraries bundled in this folder\n\n';
 for (const [name, file] of licences) {

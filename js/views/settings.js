@@ -1,11 +1,12 @@
 import { fetchStats } from '../chesscom.js';
-import { MODEL } from '../claude.js';
+import { KEYS_URL, MODEL, checkKey } from '../claude.js';
 import { db, getKv, getSettings, resetSettingsCache, saveSettings, setKv } from '../db.js';
 import { autoSync } from '../main.js';
+import { THEMES, applyTheme, currentTheme } from '../theme.js';
 import { confirmDialog, h, timeAgo, toast } from '../ui.js';
 import { VERSION } from '../version.js';
 
-export async function render(view) {
+export async function render(view, { params } = {}) {
   const s = await getSettings();
   const last = await getKv('lastSync', 0);
   const counts = { games: await db.count('games'), reviews: await db.count('reviews'), puzzles: await db.count('puzzles') };
@@ -41,11 +42,7 @@ export async function render(view) {
     btn.disabled = false;
   };
 
-  const keyInput = h('input.input', { type: 'password', value: s.apiKey, placeholder: 'sk-ant-…', autocomplete: 'off', spellcheck: false, 'aria-label': 'Anthropic API key' });
-  const showKey = h('button.btn', { type: 'button', onclick: () => {
-    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
-    showKey.textContent = keyInput.type === 'password' ? 'Show' : 'Hide';
-  } }, 'Show');
+  const claudeCard = h('section.card#claude');
 
   view.append(
     h('div.page-head', h('h1', 'Settings')),
@@ -62,29 +59,11 @@ export async function render(view) {
         syncMsg,
       ),
     ),
+    claudeCard,
     h(
       'section.card',
-      h('h2', 'Claude explanations'),
-      h('p.muted', 'Without a key, every "Ask Claude" button copies a ready-made prompt you can paste into a Claude chat. With a key, answers stream straight into the app.'),
-      h('label.field', 'Anthropic API key (optional)', h('div.row', keyInput, showKey)),
-      h('p.muted.small', `Your key is saved only in this browser on this device and is sent only to Anthropic. Model: ${MODEL}.`),
-      h(
-        'div.row.wrap',
-        h('button.btn.primary', { type: 'button', onclick: async () => {
-          await saveSettings({ apiKey: keyInput.value.trim() });
-          toast(keyInput.value.trim() ? 'API key saved on this device.' : 'API key removed.');
-        } }, 'Save key'),
-        s.apiKey ? h('button.btn', { type: 'button', onclick: async () => {
-          keyInput.value = '';
-          await saveSettings({ apiKey: '' });
-          toast('API key removed.');
-        } }, 'Remove key') : null,
-      ),
-    ),
-    h(
-      'section.card',
-      h('h2', 'Appearance'),
-      themeChips(),
+      h('h2', 'Look and feel'),
+      themePicker(),
     ),
     h(
       'section.card',
@@ -100,25 +79,115 @@ export async function render(view) {
     h('p.muted.small', `Post-Mortem version ${VERSION}. Engine: Stockfish 19 (lite). Board: chessground. Rules: chess.js. All analysis runs on your device.`),
   );
 
-  function themeChips() {
-    const host = h('div.chips', { role: 'group', 'aria-label': 'Theme' });
+  drawClaude(s.apiKey);
+  if (params?.section === 'claude') requestAnimationFrame(() => claudeCard.scrollIntoView({ block: 'start' }));
+
+  /** The "Claude coach" card: connected, or a step-by-step guide to connect. */
+  function drawClaude(savedKey, { editing = false, message = '' } = {}) {
+    const connected = !!savedKey && !editing;
+    const pill = connected ? h('span.pill.win', '✓ Connected') : h('span.pill', 'Not connected');
+    if (connected) {
+      const msg = h('p.muted.small', message);
+      claudeCard.replaceChildren(
+        h('div.row.between', h('h2', 'Claude coach'), pill),
+        h('p', 'Every "Ask Claude" button now answers right here in the app, and you can ask follow-up questions.'),
+        h('p.muted.small', `Key ending in …${savedKey.slice(-4)} · saved only on this device · model ${MODEL}`),
+        h(
+          'div.row.wrap',
+          h('button.btn', { type: 'button', onclick: async (e) => {
+            e.currentTarget.disabled = true;
+            msg.textContent = 'Checking…';
+            const r = await checkKey(savedKey);
+            drawClaude(savedKey, { message: r.ok ? 'All good: Claude is reachable.' : r.message });
+          } }, 'Test connection'),
+          h('button.btn', { type: 'button', onclick: () => drawClaude(savedKey, { editing: true }) }, 'Change key'),
+          h('button.btn.danger', { type: 'button', onclick: async () => {
+            await saveSettings({ apiKey: '' });
+            toast('Claude disconnected. The key was removed from this device.');
+            drawClaude('');
+          } }, 'Disconnect'),
+        ),
+        msg,
+      );
+      return;
+    }
+
+    const keyInput = h('input.input', { type: 'password', placeholder: 'sk-ant-…', autocomplete: 'off', spellcheck: false, 'aria-label': 'Anthropic API key' });
+    const msg = h('p.small', { role: 'status' }, message);
+    const connectBtn = h('button.btn.primary', { type: 'submit' }, 'Connect');
+    const pasteBtn = h('button.btn', { type: 'button', hidden: !navigator.clipboard?.readText, onclick: async () => {
+      try {
+        keyInput.value = (await navigator.clipboard.readText()).trim();
+        if (keyInput.value) connect();
+      } catch {
+        msg.textContent = 'Could not read the clipboard. Long-press the box and choose Paste instead.';
+      }
+    } }, 'Paste');
+
+    async function connect() {
+      connectBtn.disabled = true;
+      msg.className = 'small';
+      msg.textContent = 'Checking your key with Anthropic…';
+      const r = await checkKey(keyInput.value);
+      connectBtn.disabled = false;
+      if (!r.ok) {
+        msg.className = 'small bad-text';
+        msg.textContent = r.message;
+        return;
+      }
+      await saveSettings({ apiKey: keyInput.value.trim() });
+      toast('Claude is connected. Try any "Ask Claude" button.');
+      drawClaude(keyInput.value.trim());
+    }
+
+    const step = (n, ...content) => h('li.step', h('span.step-num', String(n)), h('div.stack', ...content));
+    claudeCard.replaceChildren(
+      h('div.row.between', h('h2', 'Claude coach'), pill),
+      h('p', 'Connect Claude and every "Ask Claude" button explains your moves right here, like a coach next to you. It takes about two minutes.'),
+      h(
+        'ol.steps',
+        step(1, h('span', 'Open the Anthropic console and sign in or create an account.'), h('a.btn.small', { href: KEYS_URL, target: '_blank', rel: 'noopener' }, 'Open the console ↗')),
+        step(2, h('span', 'Under ', h('strong', 'Billing'), ', add a little credit. Set a monthly limit there too, so it can never surprise you.')),
+        step(3, h('span', 'Under ', h('strong', 'API keys'), ', tap ', h('strong', 'Create key'), ', call it "Post-Mortem" and copy it.')),
+        step(
+          4,
+          h('span', 'Come back here and paste it:'),
+          h(
+            'form.stack',
+            { onsubmit: (e) => {
+              e.preventDefault();
+              connect();
+            } },
+            h('div.row', keyInput, pasteBtn),
+            h('div.row.wrap', connectBtn, savedKey ? h('button.btn', { type: 'button', onclick: () => drawClaude(savedKey) }, 'Cancel') : null),
+            msg,
+          ),
+        ),
+      ),
+      h('p.muted.small', 'Your key is saved only on this device and is sent only to Anthropic. You pay Anthropic directly for each answer. Without a key, "Copy for Claude" still works: it copies a ready-made question you can paste into the Claude app.'),
+    );
+  }
+
+  /** Theme cards with a little preview of each look. */
+  function themePicker() {
+    const host = h('div.theme-grid', { role: 'radiogroup', 'aria-label': 'Theme' });
     const draw = () => {
-      const current = document.documentElement.dataset.theme || 'dark';
+      const current = currentTheme();
       host.replaceChildren(
-        ...[
-          ['dark', 'Dark'],
-          ['light', 'Light'],
-          ['auto', 'Match my phone'],
-        ].map(([value, label]) =>
-          h(`button.chip${current === value ? '.active' : ''}`, { type: 'button', 'aria-pressed': current === value, onclick: () => {
-            document.documentElement.dataset.theme = value;
-            try {
-              localStorage.setItem('pm-theme', value);
-            } catch {
-              // Not saved, but applied for now.
-            }
-            draw();
-          } }, label),
+        ...THEMES.map((t) =>
+          h(
+            `button.theme-card.t-${t.id}${current === t.id ? '.active' : ''}`,
+            { type: 'button', role: 'radio', 'aria-checked': current === t.id, onclick: () => {
+              applyTheme(t.id);
+              draw();
+            } },
+            h(
+              'span.theme-preview',
+              { 'aria-hidden': 'true', style: { background: t.paper } },
+              h('span.tp-card', { style: { background: t.card, borderColor: t.ink } }, h('span.tp-line', { style: { background: t.ink } }), h('span.tp-btn', { style: { background: t.accent } })),
+            ),
+            h('span.theme-name', t.label),
+          ),
         ),
       );
     };

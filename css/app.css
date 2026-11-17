@@ -465,6 +465,182 @@ dialog::backdrop { background: rgb(0 0 0 / 0.45); }
 /* Queue bar */
 .queue { display: flex; flex-direction: column; gap: 6px; }
 
+/* Step-by-step guides (Connect Claude) */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.step { display: flex; gap: 12px; align-items: flex-start; }
+.step-num { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); font-weight: 800; box-shadow: inset 0 0 0 1px var(--accent); }
+.step > .stack { flex: 1; min-width: 0; align-items: flex-start; padding-top: 3px; }
+.step form { align-self: stretch; }
+.bad-text { color: var(--loss); font-weight: 650; }
+.claude-hint { color: var(--muted); }
+.btn.subtle { background: transparent; }
+
+/* First-visit card */
+.intro-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.intro-step { display: flex; gap: 10px; align-items: flex-start; }
+.intro-icon { width: 38px; height: 38px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); font-size: 1.1rem; }
+
+/* "What do these mean?" */
+.help-btn { position: relative; flex: none; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); font-weight: 800; font-size: 0.85rem; display: grid; place-items: center; }
+.help-btn::after { content: ''; position: absolute; inset: -9px; }
+.help h3 { margin-top: 6px; }
+.help-verdicts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.help-verdicts li { display: grid; grid-template-columns: 8.5em 1fr; gap: 10px; align-items: center; font-size: 0.9rem; }
+.arrow-green { color: var(--win); }
+.arrow-blue { color: #5b8cff; }
+
+/* Theme picker */
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.theme-card { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 14px; border: 2px solid var(--border-strong); background: var(--surface-2); color: var(--text); text-align: left; }
+.theme-card.active { border-color: var(--accent); box-shadow: var(--glow); }
+.theme-preview { position: relative; display: block; height: 64px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.tp-card { position: absolute; inset: 12px; border-radius: 6px; border: 1.5px solid; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 8px; }
+.tp-line { display: block; height: 4px; width: 60%; border-radius: 2px; opacity: 0.7; }
+.tp-btn { display: block; height: 10px; width: 42%; border-radius: 4px; }
+.t-sketch .theme-preview { background-image: repeating-linear-gradient(transparent 0 9px, rgb(80 120 200 / 0.18) 9px 10px) !important; }
+.t-sketch .tp-card { border-width: 2px; border-radius: 14px 4px 12px 5px / 5px 12px 4px 14px; box-shadow: 2px 2px 0 #2b2a27; }
+.t-sketch .tp-btn { border: 1.5px solid #2b2a27; }
+.t-sketch .theme-name { font-family: 'Caveat', cursive; font-size: 1.2rem; line-height: 1.1; }
+.theme-name { font-weight: 700; font-size: 0.88rem; }
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ======================================================================
+   Sketchbook theme: paper, pencil lines, a highlighter and handwriting.
+   ====================================================================== */
+@font-face { font-family: 'Patrick Hand'; src: url('../vendor/fonts/patrick-hand.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Caveat'; src: url('../vendor/fonts/caveat-700.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+
+:root[data-theme='sketch'] {
+  --ink: #2b2a27;
+  --paper: #f5efe0;
+  --highlight: #ffd84d;
+  --bg: var(--paper);
+  --surface: #fffdf7;
+  --surface-2: #f6f0e1;
+  --surface-3: #ece2cb;
+  --text: var(--ink);
+  --muted: #6c6556;
+  --border: #cfc3a8;
+  --border-strong: var(--ink);
+  --accent: #2f5bd3;
+  --accent-2: var(--highlight);
+  --accent-ink: var(--ink);
+  --accent-soft: rgb(255 216 77 / 0.5);
+  --glow: 2px 3px 0 var(--ink);
+  --win: #2e8b57;
+  --draw: #8a8579;
+  --loss: #c8442f;
+  --warn: #b7791f;
+  --series-1: #2f5bd3;
+  --series-2: #d0602c;
+  --series-3: #2e8b57;
+  --series-4: #b8860b;
+  --grid: #e2d8c2;
+  --axis: #8a8579;
+  --wobble: 120px 12px 100px 14px / 12px 100px 14px 120px;
+  --wobble-sm: 16px 6px 14px 7px / 7px 14px 6px 16px;
+  --radius: 18px;
+  --shadow: 2px 3px 0 rgb(43 42 39 / 0.9);
+  /* Ruled notebook lines with a red margin. */
+  --page-glow: linear-gradient(90deg, transparent 0 22px, rgb(214 90 80 / 0.28) 22px 23px, transparent 23px), repeating-linear-gradient(transparent 0 31px, rgb(80 120 200 / 0.13) 31px 32px);
+  --board-light: #fbf6ea;
+  --board-dark: #d6c29b;
+  color-scheme: light;
+  font-size: 17px;
+}
+[data-theme='sketch'] body { font-family: 'Patrick Hand', 'Comic Sans MS', 'Segoe Print', cursive, sans-serif; font-size: 17px; line-height: 1.45; -webkit-font-smoothing: auto; }
+[data-theme='sketch'] h1, [data-theme='sketch'] h2, [data-theme='sketch'] .tile-value, [data-theme='sketch'] .acc, [data-theme='sketch'] .brand {
+  font-family: 'Caveat', 'Patrick Hand', cursive; font-weight: 700; letter-spacing: 0;
+}
+[data-theme='sketch'] h1 { font-size: 2.1rem; line-height: 1.1; }
+[data-theme='sketch'] h2 { font-size: 1.55rem; line-height: 1.15; }
+[data-theme='sketch'] h3 { font-weight: 400; font-size: 1.05rem; text-decoration: underline wavy rgb(47 91 211 / 0.45); text-underline-offset: 4px; }
+[data-theme='sketch'] .brand { font-size: 1.6rem; }
+[data-theme='sketch'] #view[data-route='review'] .page-head h1 { font-size: 1.6rem; }
+[data-theme='sketch'] .help-verdicts li { grid-template-columns: 7.5em 1fr; }
+[data-theme='sketch'] .brand img { box-shadow: none; border-radius: var(--wobble-sm); outline: 2px solid var(--ink); }
+[data-theme='sketch'] .topbar { border-bottom: 2px dashed var(--ink); background: color-mix(in srgb, var(--paper) 88%, transparent); }
+
+/* Paper cards with a pencil outline */
+[data-theme='sketch'] .card { background: var(--surface); border: 2px solid var(--ink); border-radius: var(--wobble); box-shadow: var(--shadow); }
+[data-theme='sketch'] .tile { background: var(--surface); border: 2px solid var(--ink); border-radius: var(--wobble-sm); box-shadow: var(--shadow); }
+[data-theme='sketch'] .tile::after { display: none; }
+[data-theme='sketch'] .tiles .tile:nth-child(3n + 1) { transform: rotate(-0.8deg); }
+[data-theme='sketch'] .tiles .tile:nth-child(3n + 2) { transform: rotate(0.6deg); }
+[data-theme='sketch'] .tile-value { font-size: 2.3rem; line-height: 1; }
+[data-theme='sketch'] .tiles.compact .tile-value { font-size: 1.8rem; }
+[data-theme='sketch'] .tile-label { letter-spacing: 0.03em; font-weight: 400; }
+
+/* Buttons: pencil outline, highlighter for the main action */
+[data-theme='sketch'] .btn, [data-theme='sketch'] .icon-btn { background: var(--surface); border: 2px solid var(--ink); border-radius: var(--wobble-sm); box-shadow: 2px 2px 0 var(--ink); font-weight: 400; }
+[data-theme='sketch'] .btn:hover:not(:disabled) { background: var(--surface-2); }
+[data-theme='sketch'] .btn:active:not(:disabled), [data-theme='sketch'] .icon-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+[data-theme='sketch'] .btn.primary, [data-theme='sketch'] .btn.primary:hover:not(:disabled), [data-theme='sketch'] .nav-buttons .btn.next {
+  background: var(--highlight); color: var(--ink); border-color: var(--ink); box-shadow: 2px 3px 0 var(--ink); filter: none;
+}
+[data-theme='sketch'] .btn.danger { color: var(--loss); }
+[data-theme='sketch'] .btn.subtle { background: transparent; box-shadow: none; border-style: dashed; }
+[data-theme='sketch'] .input { background: var(--surface); border: 2px solid var(--ink); border-radius: var(--wobble-sm); }
+[data-theme='sketch'] .input:focus { box-shadow: 2px 2px 0 var(--accent); border-color: var(--accent); }
+[data-theme='sketch'] .chip { background: var(--surface); border: 1.5px solid var(--ink); border-radius: var(--wobble-sm); font-weight: 400; }
+[data-theme='sketch'] .chip.active { background: var(--highlight); border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+[data-theme='sketch'] .pill { border: 1.5px solid currentColor; font-weight: 400; background: var(--surface); }
+[data-theme='sketch'] .help-btn { border: 2px solid var(--ink); background: var(--highlight); font-weight: 400; }
+[data-theme='sketch'] .step-num, [data-theme='sketch'] .todo-icon, [data-theme='sketch'] .intro-icon { background: var(--highlight); box-shadow: none; border: 2px solid var(--ink); border-radius: var(--wobble-sm); font-weight: 400; }
+[data-theme='sketch'] .theme-card { background: var(--surface); border-color: var(--ink); border-radius: var(--wobble-sm); }
+[data-theme='sketch'] .theme-card.active { background: var(--accent-soft); box-shadow: 2px 3px 0 var(--ink); }
+[data-theme='sketch'] .todo + .todo, [data-theme='sketch'] .list > li + li { border-top: 1.5px dashed var(--border); }
+
+/* Tabs */
+[data-theme='sketch'] .tab { font-weight: 400; }
+[data-theme='sketch'] .tab.active { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--ink); }
+[data-theme='sketch'] .tab.active svg { color: var(--ink); filter: none; }
+[data-theme='sketch'] .tab .badge { box-shadow: 0 0 0 2px var(--paper); font-family: system-ui, sans-serif; }
+@media (max-width: 760px) {
+  [data-theme='sketch'] .tabs { background: color-mix(in srgb, var(--paper) 94%, transparent); border-top: 2px solid var(--ink); }
+  [data-theme='sketch'] .tab.active { background: none; box-shadow: none; }
+  [data-theme='sketch'] .tab.active svg { background: var(--highlight); box-shadow: inset 0 0 0 1.5px var(--ink); border-radius: var(--wobble-sm); }
+  [data-theme='sketch'] .tab { font-size: 0.78rem; }
+  [data-theme='sketch'] .dock { background: color-mix(in srgb, var(--paper) 94%, transparent); border-top: 2px dashed var(--ink); }
+}
+
+/* Board: parchment squares with a light pencil hatch */
+[data-theme='sketch'] .board-wrap { box-shadow: 3px 4px 0 var(--ink); outline: 2px solid var(--ink); border-radius: 6px; }
+[data-theme='sketch'] .cg-wrap cg-board {
+  border-radius: 6px;
+  background-image: repeating-linear-gradient(-45deg, rgb(43 42 39 / 0.07) 0 1.5px, transparent 1.5px 6px),
+    conic-gradient(var(--board-dark) 90deg, var(--board-light) 90deg 180deg, var(--board-dark) 180deg 270deg, var(--board-light) 270deg);
+  background-size: auto, 25% 25%;
+}
+[data-theme='sketch'] .cg-wrap square.last-move { background-color: rgb(255 216 77 / 0.6); }
+[data-theme='sketch'] .cg-wrap square.selected { background-color: rgb(47 91 211 / 0.3); }
+[data-theme='sketch'] .cg-wrap coords coord { color: rgb(43 42 39 / 0.75) !important; text-shadow: none; }
+[data-theme='sketch'] .evalbar { background: var(--ink); box-shadow: 0 0 0 2px var(--ink); border-radius: 4px; }
+[data-theme='sketch'] .evalbar-white { background: #fffdf7; }
+[data-theme='sketch'] .player .clock { border: 1.5px solid var(--ink); border-radius: var(--wobble-sm); font-family: system-ui, sans-serif; }
+[data-theme='sketch'] .player .clock.active { background: var(--ink); color: var(--paper); }
+
+/* Moves, verdicts and the review banner */
+[data-theme='sketch'] .verdict-sym { box-shadow: none; border: 1.5px solid var(--ink); font-family: system-ui, sans-serif; }
+[data-theme='sketch'] .verdict { font-weight: 400; }
+[data-theme='sketch'] .move-banner, [data-theme='sketch'] .puzzle-status { background: color-mix(in srgb, var(--v, var(--highlight)) 14%, var(--surface)); border: 2px solid var(--ink); border-radius: var(--wobble-sm); box-shadow: 2px 2px 0 var(--ink); font-weight: 400; }
+[data-theme='sketch'] .puzzle-status.good { background: color-mix(in srgb, var(--win) 16%, var(--surface)); }
+[data-theme='sketch'] .puzzle-status.bad { background: color-mix(in srgb, var(--loss) 14%, var(--surface)); }
+[data-theme='sketch'] .move-strip button { background: var(--surface); border: 1.5px solid var(--border); font-weight: 400; }
+[data-theme='sketch'] .move-strip button.current { background: var(--highlight); border-color: var(--ink); box-shadow: none; }
+[data-theme='sketch'] .moves button.current { background: var(--highlight); box-shadow: inset 0 0 0 1.5px var(--ink); font-weight: 400; }
+[data-theme='sketch'] .claude-a { background: var(--surface-2); border: 1.5px dashed var(--ink); border-radius: var(--wobble-sm); }
+[data-theme='sketch'] .claude-q { background: var(--accent-soft); border-radius: var(--wobble-sm); }
+[data-theme='sketch'] .progress { border: 1.5px solid var(--ink); background: var(--surface); }
+[data-theme='sketch'] .progress > span { background: repeating-linear-gradient(-45deg, var(--accent) 0 4px, color-mix(in srgb, var(--accent) 70%, #fff) 4px 8px); }
+[data-theme='sketch'] .hbar-fill { border-radius: 0 6px 3px 0; }
+[data-theme='sketch'] .adv-bg { fill: var(--ink); }
+[data-theme='sketch'] .adv-white { fill: #fffdf7; }
+[data-theme='sketch'] dialog { border: 2px solid var(--ink); border-radius: var(--wobble-sm); box-shadow: 4px 5px 0 var(--ink); }
+[data-theme='sketch'] .sheet-head { border-bottom: 2px dashed var(--ink); }
+[data-theme='sketch'] .update-bar { border: 2px solid var(--ink); box-shadow: 3px 4px 0 var(--ink); background: var(--highlight); }
+[data-theme='sketch'] .toast { border-radius: var(--wobble-sm); }
+[data-theme='sketch'] .chart-tip { border: 1.5px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
